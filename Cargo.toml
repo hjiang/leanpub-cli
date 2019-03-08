@@ -5,9 +5,9 @@ authors = ["Hong Jiang <j@1byte.io>"]
 edition = "2018"
 description = "CLI for leanpub.com"
 license = "MIT"
-repository = "https://github.com/hjiang/leanpub"
-homepage = "https://github.com/hjiang/leanpub"
-documentation = "https://github.com/hjiang/leanpub/blob/master/README.md"
+repository = "https://github.com/hjiang/leanpub-cli"
+homepage = "https://github.com/hjiang/leanpub-cli"
+documentation = "https://github.com/hjiang/leanpub-cli/blob/master/README.md"
 
 [dependencies]
 structopt = "0.2.14"
