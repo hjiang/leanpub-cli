@@ -1,6 +1,6 @@
 [package]
 name = "leanpub-cli"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Hong Jiang <j@1byte.io>"]
 edition = "2018"
 description = "CLI for leanpub.com"
