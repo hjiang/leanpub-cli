@@ -8,7 +8,7 @@ This is a CLI for leanpub.com. It calls the LeanPub API to generate preview file
 
 - Install [Rust](https://www.rust-lang.org/tools/install)
 - Clone this repo
-- run `cargo build --release`. The binary will be in `target/release/leanpub`.
+- run `cargo build --release`. The binary will be in `target/release/leanpub-cli`.
 
 TODO: Make binary release for non-developers.
 
