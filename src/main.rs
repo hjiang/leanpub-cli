@@ -50,35 +50,56 @@ enum GenType {
 
 fn run() -> Result<()> {
     let opt = Opt::from_args();
+
     let gen_type = if opt.gen_type == "subset" {
         GenType::Subset
     } else {
         GenType::Full
     };
-    let preview_url = if gen_type == GenType::Subset {
-        format!("https://leanpub.com/{}/preview/subset.json", opt.slug)
-    } else {
-        format!("https://leanpub.com/{}/preview.json", opt.slug)
-    };
+
     let client = reqwest::Client::builder()
         .gzip(true)
         .timeout(Duration::from_secs(120))
         .build()
         .chain_err(|| "Unable to create HTTP client.")?;
+
+    start_preview_job(&client, &opt.slug, &opt.api_key, gen_type)?;
+    wait_until_done(&client, &opt.slug, &opt.api_key)?;
+    download_files(&client, &opt.slug, &opt.api_key)
+}
+
+fn start_preview_job(
+    client: &reqwest::Client,
+    slug: &str,
+    api_key: &str,
+    gen_type: GenType,
+) -> Result<()> {
+    let preview_url = if gen_type == GenType::Subset {
+        format!("https://leanpub.com/{}/preview/subset.json", slug)
+    } else {
+        format!("https://leanpub.com/{}/preview.json", slug)
+    };
     let mut params = HashMap::new();
-    params.insert("api_key", opt.api_key.clone());
+    params.insert("api_key", api_key.clone());
     client
         .post(&preview_url)
         .form(&params)
         .send()
         .chain_err(|| "Unable to start preview job.")?;
+    Ok(())
+}
+
+fn wait_until_done(client: &reqwest::Client, slug: &str, api_key: &str) -> Result<()> {
     let status_url = format!(
         "https://leanpub.com/{}/job_status.json?api_key={}",
-        opt.slug, &opt.api_key
+        &slug, &api_key
     );
     let mut last_status_msg = "".to_string();
     loop {
-        let mut resp = reqwest::get(&status_url).chain_err(|| "Unable to get job status.")?;
+        let mut resp = client
+            .get(&status_url)
+            .send()
+            .chain_err(|| "Unable to get job status.")?;
         if resp.status().is_success() {
             match resp.json::<JobStatus>() {
                 Ok(status) => {
@@ -87,14 +108,14 @@ fn run() -> Result<()> {
                         last_status_msg = status.message
                     }
                 }
-                _ => break,
+                // When the job is done. The server returns {}, so parsing will fail.
+                _ => return Ok(()),
             }
         } else {
             return Err(Error::from(format!("Server returned: {}", resp.status())));
         }
         std::thread::sleep(Duration::from_millis(3000));
     }
-    download_files(&client, &opt.slug, &opt.api_key)
 }
 
 #[derive(Deserialize, Debug)]
@@ -106,7 +127,10 @@ struct BookInfo {
 
 fn download_files(client: &reqwest::Client, slug: &str, api_key: &str) -> Result<()> {
     let info_url = format!("https://leanpub.com/{}.json?api_key={}", slug, api_key);
-    let mut resp = client.get(&info_url).send().chain_err(|| "Unable to get book info.")?;
+    let mut resp = client
+        .get(&info_url)
+        .send()
+        .chain_err(|| "Unable to get book info.")?;
     if resp.status().is_success() {
         match resp.json::<BookInfo>() {
             Ok(book) => {
